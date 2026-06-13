@@ -131,6 +131,8 @@
       <h2>批次更名欄位</h2>
       <label>從試算表複製一整欄貼上（一行一個檔名，依照片順序對應）</label>
       <textarea id="renameBox" placeholder="封面照&#10;產品_正面&#10;產品_背面&#10;..."></textarea>
+      <button class="ghost sm" id="importNames" style="width:100%;margin-top:8px">📄 從 CSV／TXT 檔匯入（取第一欄）</button>
+      <input type="file" id="namesFile" accept=".csv,.txt,text/csv,text/plain" style="display:none">
       <div class="toggle" style="margin-top:8px">
         <input type="checkbox" id="keepExt" checked>
         <label for="keepExt" style="margin:0">自動保留原副檔名（.jpg/.png…）</label>
@@ -370,6 +372,42 @@ function updateRenameStat(){
 }
 els.renameBox.oninput=updateRenameStat;
 
+/* ---------- 從 CSV／TXT 匯入名稱（取第一欄，自動偵測 UTF-8／Big5） ---------- */
+$("#importNames").onclick=()=>$("#namesFile").click();
+$("#namesFile").onchange=e=>{ const f=e.target.files[0]; if(f) importNamesFile(f); e.target.value=""; };
+function decodeText(buf){
+  try{ return new TextDecoder("utf-8",{fatal:true}).decode(buf); }
+  catch(_){ try{ return new TextDecoder("big5").decode(buf); }catch(__){ return new TextDecoder().decode(buf); } }
+}
+// 取每一列的第一欄（處理逗號與雙引號跳脫）
+function firstColumn(text){
+  return text.replace(/\r\n?/g,"\n").split("\n").map(line=>{
+    if(line==="") return "";
+    if(line[0]==='"'){
+      let f="",i=1;
+      while(i<line.length){
+        if(line[i]==='"'){ if(line[i+1]==='"'){ f+='"'; i+=2; } else { break; } }
+        else { f+=line[i]; i++; }
+      }
+      return f;
+    }
+    const c=line.indexOf(","); return c===-1 ? line : line.slice(0,c);
+  });
+}
+function importNamesFile(file){
+  const reader=new FileReader();
+  reader.onload=()=>{
+    let text=decodeText(new Uint8Array(reader.result)).replace(/^﻿/,"");
+    const isTxt=/\.txt$/i.test(file.name);
+    let names = isTxt ? text.replace(/\r\n?/g,"\n").split("\n") : firstColumn(text);
+    while(names.length && names[names.length-1].trim()==="") names.pop();
+    els.renameBox.value=names.join("\n");
+    updateRenameStat();
+    els.renameStat.textContent=`已從「${file.name}」匯入 ${names.length} 個名稱，按「套用名稱」即可。`;
+  };
+  reader.readAsArrayBuffer(file);
+}
+
 /* ---------- 輸出 ---------- */
 els.quality.oninput=()=>els.qVal.textContent=(+els.quality.value).toFixed(2);
 function outMime(p){
@@ -501,7 +539,7 @@ async function startStream(){
     camMsg.textContent="此瀏覽器不支援相機存取。"; return;
   }
   try{
-    cam.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:cam.facing}, audio:false});
+    cam.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:cam.facing, width:{ideal:3840}, height:{ideal:2160}}, audio:false});
     camVideo.srcObject=cam.stream; await camVideo.play();
     requestAnimationFrame(positionOverlay); setTimeout(positionOverlay,300);
   }catch(e){
@@ -518,7 +556,7 @@ function takeShot(){
   cv.toBlob(b=>{
     cam.shots.push({id:++uid, blob:b, url:URL.createObjectURL(b), sel:true});
     renderStrip();
-  },"image/jpeg",0.92);
+  },"image/jpeg",0.95);
 }
 function renderStrip(){
   camStrip.innerHTML="";
