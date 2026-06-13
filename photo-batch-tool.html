@@ -73,7 +73,10 @@
   .cam{background:var(--panel);border:none;border-radius:0;
     width:100%;height:100%;max-height:100vh;overflow:auto;padding:14px;display:flex;flex-direction:column}
   .cam-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-  .cam video{width:100%;flex:1;min-height:0;border-radius:10px;background:#000;object-fit:contain;display:block}
+  .cam-video-wrap{position:relative;flex:1;min-height:0;display:flex;border-radius:10px;overflow:hidden;background:#000}
+  .cam video{width:100%;height:100%;object-fit:contain;display:block}
+  .cam-overlay{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;pointer-events:none;opacity:.55}
+  .cam-overlay.hidden{display:none}
   .cam-controls{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;margin-top:12px}
   .cam-controls #camAdd{justify-self:end}
   .shutter{width:78px;height:78px;border-radius:50%;background:#fff;border:5px solid var(--acc);
@@ -171,9 +174,13 @@
     <div class="cam-head">
       <h2 style="margin:0">📸 拍照</h2>
       <span class="grow"></span>
+      <button id="camOverlayBtn" class="sm">參考框：開</button>
       <button id="camClose" class="sm">關閉</button>
     </div>
-    <video id="camVideo" playsinline muted autoplay></video>
+    <div class="cam-video-wrap">
+      <video id="camVideo" playsinline muted autoplay></video>
+      <img id="camOverlay" class="cam-overlay" src="template-overlay.png" alt="人像參考框">
+    </div>
     <div class="cam-msg" id="camMsg"></div>
     <div class="cam-controls">
       <span class="dim" id="camCount">尚未拍攝</span>
@@ -460,6 +467,15 @@ $("#cameraBtn").onclick=openCam;
 $("#camClose").onclick=closeCam;
 $("#camShot").onclick=takeShot;
 $("#camAdd").onclick=addShots;
+$("#camOverlayBtn").onclick=()=>{
+  const hidden=$("#camOverlay").classList.toggle("hidden");
+  $("#camOverlayBtn").textContent = hidden ? "參考框：關" : "參考框：開";
+};
+// 實體快門：藍牙遙控器/鍵盤的 Enter 或空白鍵＝拍攝（iPad 系統音量鍵無法被網頁攔截）
+document.addEventListener("keydown",e=>{
+  if(!camModal.classList.contains("open"))return;
+  if(e.code==="Space"||e.code==="Enter"||e.key===" "||e.key==="Enter"){ e.preventDefault(); takeShot(); }
+});
 
 async function openCam(){
   camModal.classList.add("open");

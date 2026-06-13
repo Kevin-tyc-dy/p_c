@@ -16,7 +16,7 @@
 透過 GitHub Pages 以 HTTPS 開啟，**相機在 Chrome／Edge／Safari 都能正常使用**。
 
 1. 建立一個新的 GitHub repository。
-2. 把 `index.html`（以及這份 `README.md`）上傳到 repo。
+2. 把 `index.html`、`template-overlay.png`（拍照參考框，需與 index.html 放在同一層）以及這份 `README.md` 上傳到 repo。
 3. 進入 repo 的 **Settings → Pages**。
 4. **Source** 選 `Deploy from a branch`，分支選 `main`、資料夾選 `/ (root)`，按 **Save**。
 5. 等一兩分鐘，用 `https://你的帳號.github.io/你的repo名/` 開啟即可。
