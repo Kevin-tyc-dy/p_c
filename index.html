@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>批次照片裁切 / 更名工具</title>
+<title>桃園市新生學生卡拍照系統</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{
     --bg:#0f1115; --panel:#181b22; --panel2:#1f232c; --line:#2a2f3a;
@@ -52,6 +53,7 @@
     border-radius:6px;padding:1px 8px;font-size:12px;font-weight:600}
   .photo .body{padding:10px 12px;display:flex;flex-direction:column;gap:8px}
   .nm{font-size:12px;color:var(--mut);word-break:break-all}
+  .rinfo{font-size:14px;color:var(--acc);font-weight:700}
   .nm b{color:var(--ok);font-weight:600}
   .ov-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
   .ov-grid label{font-size:10px;margin:0 0 2px}
@@ -67,6 +69,12 @@
   .custom-on{border-color:var(--warn)!important}
   .badge-c{color:var(--warn);font-size:11px}
   a.dl{display:none}
+  .collapse-toggle{width:100%;display:flex;justify-content:space-between;align-items:center;
+    background:transparent;border:none;color:var(--mut);font-size:14px;font-weight:600;
+    text-transform:uppercase;letter-spacing:.5px;padding:0;cursor:pointer}
+  .collapse-toggle:hover{color:#fff}
+  .collapse-body{margin-top:12px}
+  .collapse-body.hidden{display:none}
   .modal{position:fixed;inset:0;background:#000;z-index:50;display:none;
     align-items:center;justify-content:center;padding:0}
   .modal.open{display:flex}
@@ -96,10 +104,9 @@
 </head>
 <body>
 <header>
-  <h1>📷 批次照片裁切 / 更名</h1>
+  <h1>📷 桃園市新生學生卡拍照系統</h1>
   <span class="count" id="count">尚未匯入照片</span>
   <span class="grow"></span>
-  <button class="ghost" id="reorderHint" title="可用每張卡片的 ◀ ▶ 調整順序">順序＝匯入順序</button>
   <button id="clearBtn" class="danger ghost">清空</button>
   <button id="cameraBtn">📸 拍照</button>
   <button id="importBtn" class="primary">＋ 匯入照片</button>
@@ -108,38 +115,41 @@
 
 <div class="layout">
   <aside>
-    <!-- 批次裁切 -->
-    <div class="card">
-      <h2>批次裁切（邊緣）</h2>
-      <label>單位</label>
-      <div class="seg" id="unitSeg">
-        <button data-unit="px" class="on">像素 px</button>
-        <button data-unit="pct">比率 %</button>
-      </div>
-      <div class="edge-grid" style="margin-top:12px">
-        <div><label>上 Top</label><input type="number" id="bTop" value="0" min="0" step="1"></div>
-        <div><label>下 Bottom</label><input type="number" id="bBottom" value="0" min="0" step="1"></div>
-        <div><label>左 Left</label><input type="number" id="bLeft" value="0" min="0" step="1"></div>
-        <div><label>右 Right</label><input type="number" id="bRight" value="0" min="0" step="1"></div>
-      </div>
-      <p class="hint">數值＝從該邊往內裁掉的量。% 模式下，上下以高度計、左右以寬度計。</p>
-      <button class="primary" id="applyAll" style="width:100%;margin-top:6px">套用到全部</button>
-      <button class="ghost sm" id="resetCrop" style="width:100%;margin-top:6px">全部歸零</button>
-    </div>
-
-    <!-- 批次更名 -->
+    <!-- 批次更名（移到最上面） -->
     <div class="card">
       <h2>批次更名欄位</h2>
-      <label>從試算表複製一整欄貼上（一行一個檔名，依照片順序對應）</label>
-      <textarea id="renameBox" placeholder="封面照&#10;產品_正面&#10;產品_背面&#10;..."></textarea>
-      <button class="ghost sm" id="importNames" style="width:100%;margin-top:8px">📄 從 CSV／TXT 檔匯入（取第一欄）</button>
-      <input type="file" id="namesFile" accept=".csv,.txt,text/csv,text/plain" style="display:none">
+      <label>從試算表中依座號順序複製學生「學號」欄位貼上（一行一個檔名，依照片順序對應）</label>
+      <textarea id="renameBox" placeholder="110001&#10;110002&#10;110003&#10;..."></textarea>
+      <button class="ghost sm" id="importNames" style="width:100%;margin-top:8px">📄 從 Excel 匯入（座號／姓名／學號）</button>
+      <input type="file" id="namesFile" accept=".xlsx,.xls" style="display:none">
+      <button class="ghost sm" id="sampleXlsx" style="width:100%;margin-top:6px">⬇ 下載範例 Excel</button>
       <div class="toggle" style="margin-top:8px">
         <input type="checkbox" id="keepExt" checked>
         <label for="keepExt" style="margin:0">自動保留原副檔名（.jpg/.png…）</label>
       </div>
       <button class="primary" id="applyNames" style="width:100%;margin-top:10px">套用名稱（依序）</button>
       <p class="hint" id="renameStat"></p>
+    </div>
+
+    <!-- 批次裁切（邊緣）：可收合，預設收合 -->
+    <div class="card">
+      <button class="collapse-toggle" id="cropToggle">批次裁切（邊緣）<span id="cropArrow">▸</span></button>
+      <div id="cropBody" class="collapse-body hidden">
+        <label>單位</label>
+        <div class="seg" id="unitSeg">
+          <button data-unit="px" class="on">像素 px</button>
+          <button data-unit="pct">比率 %</button>
+        </div>
+        <div class="edge-grid" style="margin-top:12px">
+          <div><label>上 Top</label><input type="number" id="bTop" value="0" min="0" step="1"></div>
+          <div><label>下 Bottom</label><input type="number" id="bBottom" value="0" min="0" step="1"></div>
+          <div><label>左 Left</label><input type="number" id="bLeft" value="0" min="0" step="1"></div>
+          <div><label>右 Right</label><input type="number" id="bRight" value="0" min="0" step="1"></div>
+        </div>
+        <p class="hint">數值＝從該邊往內裁掉的量。% 模式下，上下以高度計、左右以寬度計。</p>
+        <button class="primary" id="applyAll" style="width:100%;margin-top:6px">套用到全部</button>
+        <button class="ghost sm" id="resetCrop" style="width:100%;margin-top:6px">全部歸零</button>
+      </div>
     </div>
 
     <!-- 輸出 -->
@@ -280,6 +290,7 @@ function makeCard(p,i){
   el.innerHTML=`
     <div class="pv"><span class="idx">${i+1}</span><canvas></canvas></div>
     <div class="body">
+      ${roster[i]?`<div class="rinfo">座號 ${roster[i].seat}　${roster[i].name}</div>`:""}
       <div class="nm">原：${p.name}</div>
       <div class="nm">新：<b class="newn"></b> <span class="dim outdim"></span></div>
       <div>
@@ -338,6 +349,10 @@ function drawCard(p){
 }
 
 /* ---------- 批次操作 ---------- */
+$("#cropToggle").onclick=()=>{
+  const hidden=$("#cropBody").classList.toggle("hidden");
+  $("#cropArrow").textContent = hidden ? "▸" : "▾";
+};
 $("#unitSeg").querySelectorAll("button").forEach(b=>b.onclick=()=>{
   unit=b.dataset.unit;
   $("#unitSeg").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b));
@@ -373,41 +388,42 @@ function updateRenameStat(){
 }
 els.renameBox.oninput=updateRenameStat;
 
-/* ---------- 從 CSV／TXT 匯入名稱（取第一欄，自動偵測 UTF-8／Big5） ---------- */
-$("#importNames").onclick=()=>$("#namesFile").click();
-$("#namesFile").onchange=e=>{ const f=e.target.files[0]; if(f) importNamesFile(f); e.target.value=""; };
-function decodeText(buf){
-  try{ return new TextDecoder("utf-8",{fatal:true}).decode(buf); }
-  catch(_){ try{ return new TextDecoder("big5").decode(buf); }catch(__){ return new TextDecoder().decode(buf); } }
-}
-// 取每一列的第一欄（處理逗號與雙引號跳脫）
-function firstColumn(text){
-  return text.replace(/\r\n?/g,"\n").split("\n").map(line=>{
-    if(line==="") return "";
-    if(line[0]==='"'){
-      let f="",i=1;
-      while(i<line.length){
-        if(line[i]==='"'){ if(line[i+1]==='"'){ f+='"'; i+=2; } else { break; } }
-        else { f+=line[i]; i++; }
-      }
-      return f;
-    }
-    const c=line.indexOf(","); return c===-1 ? line : line.slice(0,c);
-  });
-}
-function importNamesFile(file){
+/* ---------- 從 Excel 匯入（第一欄座號、第二欄姓名、第三欄學號；含標題列） ---------- */
+let roster = []; // [{seat,name,id}]，依列順序對應照片次序
+$("#importNames").onclick=()=>{
+  if(!photos.length){ alert("請先匯入照片，再匯入 Excel 名單。"); return; }
+  $("#namesFile").click();
+};
+$("#namesFile").onchange=e=>{ const f=e.target.files[0]; if(f) importRosterFile(f); e.target.value=""; };
+function importRosterFile(file){
+  if(typeof XLSX==="undefined"){ els.renameStat.textContent="Excel 函式庫尚未載入（請確認網路，或改用 https／GitHub Pages 開啟）。"; return; }
   const reader=new FileReader();
   reader.onload=()=>{
-    let text=decodeText(new Uint8Array(reader.result)).replace(/^﻿/,"");
-    const isTxt=/\.txt$/i.test(file.name);
-    let names = isTxt ? text.replace(/\r\n?/g,"\n").split("\n") : firstColumn(text);
-    while(names.length && names[names.length-1].trim()==="") names.pop();
-    els.renameBox.value=names.join("\n");
-    updateRenameStat();
-    els.renameStat.textContent=`已從「${file.name}」匯入 ${names.length} 個名稱，按「套用名稱」即可。`;
+    try{
+      const wb=XLSX.read(new Uint8Array(reader.result), {type:"array"});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws, {header:1, blankrows:false});
+      const body=rows.slice(1).filter(r=>r && (r[0]!=null||r[1]!=null||r[2]!=null)); // 跳過標題列
+      roster = body.map(r=>({
+        seat:(r[0]??"").toString().trim(),
+        name:(r[1]??"").toString().trim(),
+        id:(r[2]??"").toString().trim()
+      }));
+      els.renameBox.value = roster.map(r=>r.id).join("\n");
+      render();
+      els.renameStat.textContent=`已從「${file.name}」匯入 ${roster.length} 筆：已帶入學號、並在照片上顯示座號/姓名。按「套用名稱」即可套到檔名。`;
+    }catch(err){ els.renameStat.textContent="讀取 Excel 失敗："+(err.message||err); }
   };
   reader.readAsArrayBuffer(file);
 }
+// 下載範例 Excel（座號／姓名／學號）
+$("#sampleXlsx").onclick=()=>{
+  if(typeof XLSX==="undefined"){ alert("Excel 函式庫尚未載入（請確認網路）。"); return; }
+  const data=[["座號","姓名","學號"],[1,"王小明","110001"],[2,"李小華","110002"],[3,"陳大文","110003"],[4,"林美玲","110004"],[5,"張志強","110005"]];
+  const ws=XLSX.utils.aoa_to_sheet(data);
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"名單");
+  XLSX.writeFile(wb,"學生名單範例.xlsx");
+};
 
 /* ---------- 輸出 ---------- */
 els.quality.oninput=()=>els.qVal.textContent=(+els.quality.value).toFixed(2);
