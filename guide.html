@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>桃園市新生學生卡拍照系統 — 使用說明</title>
+<style>
+  :root{ --acc:#3a6fd8; --acc2:#4f8cff; --ink:#1f2430; --mut:#5b6573;
+    --line:#e2e6ee; --bg:#f5f7fb; --card:#ffffff; --ok:#1f9d6b; --warn:#c47d12; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Segoe UI","Noto Sans TC",system-ui,sans-serif;line-height:1.75;font-size:16px}
+  .wrap{max-width:880px;margin:0 auto;padding:28px 20px 60px}
+  header.top{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;
+    border-radius:16px;padding:26px 28px;margin-bottom:24px}
+  header.top h1{margin:0 0 6px;font-size:24px}
+  header.top p{margin:0;opacity:.92;font-size:15px}
+  h2{font-size:19px;margin:30px 0 12px;padding-left:12px;border-left:5px solid var(--acc2)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:20px 22px;margin-bottom:18px;box-shadow:0 1px 3px rgba(20,30,60,.05)}
+  ol{margin:0;padding-left:22px} ol li{margin-bottom:10px}
+  ul{margin:6px 0;padding-left:20px}
+  .tag{display:inline-block;background:#eaf0fe;color:var(--acc);font-size:13px;font-weight:700;
+    border-radius:999px;padding:3px 12px;margin-bottom:10px}
+  .grid2{display:grid;grid-template-columns:1.1fr .9fr;gap:22px;align-items:center}
+  .grid2 img{width:100%;border-radius:12px;border:1px solid var(--line)}
+  figcaption{font-size:13px;color:var(--mut);margin-top:8px;text-align:center}
+  .note{background:#fff8ec;border:1px solid #f0dcae;border-radius:10px;padding:12px 16px;
+    font-size:14.5px;color:#6b4e16}
+  .note b{color:#a06a10}
+  table{border-collapse:collapse;width:100%;max-width:320px;font-size:14px;margin-top:6px}
+  th,td{border:1px solid var(--line);padding:6px 12px;text-align:center}
+  th{background:#eaf0fe;color:var(--acc)}
+  code{background:#eef1f6;border-radius:5px;padding:1px 6px;font-size:14px}
+  b.k{color:var(--acc)}
+  .steps-head{display:flex;align-items:center;gap:10px;margin:26px 0 6px}
+  .steps-head .n{background:var(--acc);color:#fff;width:30px;height:30px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;font-weight:700;flex:0 0 auto}
+  .steps-head h2{margin:0;border:none;padding:0}
+  @media(max-width:640px){ .grid2{grid-template-columns:1fr} }
+  @media print{ body{background:#fff} .card{box-shadow:none} header.top{color:#fff} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <h1>📷 桃園市新生學生卡拍照系統</h1>
+    <p>使用說明 — iPad 拍照、電腦批次裁切與更名，產生學生卡照片</p>
+  </header>
+
+  <div class="card">
+    <span class="tag">系統組成</span>
+    <p style="margin:0">本系統有兩個網頁，分工使用：</p>
+    <ul>
+      <li><b class="k">iPad 拍照版</b>（<code>ipad-camera.html</code>）：在拍照現場用 iPad 拍攝、打包下載。</li>
+      <li><b class="k">電腦編輯版</b>（<code>index.html</code>）：回電腦後批次匯入、套用學號更名、裁切、打包下載。</li>
+    </ul>
+  </div>
+
+  <h2>事先準備</h2>
+  <div class="card">
+    <ol>
+      <li>請每個班級的學生<b>依座號排列</b>，依序拍照。</li>
+      <li>準備該班級的 Excel 檔，包含三欄並含標題：<b>座號、姓名、學號</b>（順序需與拍照順序一致）。可在電腦編輯版按「下載範例 Excel」取得格式範本。</li>
+    </ol>
+    <table>
+      <tr><th>座號</th><th>姓名</th><th>學號</th></tr>
+      <tr><td>1</td><td>王小明</td><td>110001</td></tr>
+      <tr><td>2</td><td>李小華</td><td>110002</td></tr>
+      <tr><td>3</td><td>陳大文</td><td>110003</td></tr>
+    </table>
+  </div>
+
+  <div class="steps-head"><span class="n">A</span><h2>在 iPad 拍照</h2></div>
+  <div class="card">
+    <div class="grid2">
+      <div>
+        <ol>
+          <li>請學生站在<b>單色背景</b>區前；iPad 對著學生，<b>依螢幕上的人像參考框</b>對齊頭肩位置再拍。儘量對準框，之後裁切會更方便、整齊。</li>
+          <li><b>一張一張拍</b>。拍壞了沒關係，下方縮圖<b>取消勾選</b>即可不採用，直到全班拍完。</li>
+          <li>拍完後按<b>「下載 ZIP 打包檔」</b>，把 zip 存到 iPad 的「檔案」。</li>
+          <li>再透過<b>分享到個人雲端、或寄到信箱</b>等方式，把 zip 傳到電腦。</li>
+        </ol>
+      </div>
+      <figure style="margin:0">
+        <img src="guide-framing.png" alt="拍照取景示範">
+        <figcaption>對齊參考框的正確取景示範（框與輪廓不會被拍進照片）</figcaption>
+      </figure>
+    </div>
+    <p class="note" style="margin-top:16px"><b>提醒：</b>螢幕上的白框與青色人像輪廓只是定位用，<b>不會出現在拍出來的照片裡</b>；照片會自動裁成 1:1.2 的直式比例。光線要足、請學生別晃動，對焦穩定後再按快門（也可用藍牙快門遙控器，按鍵相當於 Enter／空白鍵）。</p>
+  </div>
+
+  <div class="steps-head"><span class="n">B</span><h2>在電腦批次處理</h2></div>
+  <div class="card">
+    <ol>
+      <li>在電腦中<b>解壓縮</b>剛才的照片 zip。</li>
+      <li>開啟電腦編輯版，<b>批次匯入</b>全部照片（依拍攝座號順序排列）。</li>
+      <li>從 Excel 檔把學生<b>「學號」整欄</b>（依座號順序）複製下來，貼到<b>「批次更名欄位」</b>；或直接用<b>「從 Excel 匯入」</b>讀取整份名單（會自動帶入學號，並在每張照片上顯示座號／姓名）。</li>
+      <li>務必<b>完整對應</b>照片中學生的座號：<b>50 張照片就要有 50 列</b>。對齊後按<b>「套用名稱（依序）」</b>完成更名。</li>
+      <li>（可選）展開<b>「批次裁切（邊緣）」</b>微調裁切範圍。</li>
+      <li>按<b>「下載 ZIP 打包檔」</b>，即可得到命名好的學生照片，再<b>批次上傳到學生卡網站</b>。</li>
+    </ol>
+    <p class="note"><b>對齊小技巧：</b>若照片順序與名單不一致，可用每張照片卡片上的 <b>◀ ▶</b> 微調順序，或點「改名」單張修正。畫面也會顯示「偵測到幾行名稱、共幾張照片」方便你核對數量。</p>
+  </div>
+
+  <div class="steps-head"><span class="n">＋</span><h2>替代方式：用電腦／筆電相機（webcam）直接拍</h2></div>
+  <div class="card">
+    <p style="margin-top:0">若現場沒有 iPad，也可以用<b>筆電的內建相機</b>，或<b>桌機外接的 USB webcam</b>，在<b class="k">電腦編輯版</b>（<code>index.html</code>）直接拍照＋編輯，全程在同一台電腦完成、不需傳檔。</p>
+    <ol>
+      <li>（若用外接 webcam 請<b>先接上</b>再開啟頁面）開啟電腦編輯版，按右上的<b>「📸 拍照」</b>開啟相機；瀏覽器詢問相機權限時請按<b>允許</b>。</li>
+      <li>同樣<b>對齊參考框</b>、一張一張拍，下方縮圖<b>勾選</b>要用的，按<b>「加入選取的照片」</b>把照片帶進清單。</li>
+      <li>接著就與上面「在電腦批次處理」相同：從 Excel 匯入學號、套用更名、（可選）裁切，最後按<b>「下載 ZIP 打包檔」</b>。</li>
+    </ol>
+  </div>
+
+  <div class="card" style="text-align:center;color:var(--mut);font-size:13.5px;line-height:1.9">
+    本系統由<b>大勇國小教學團隊</b>開發，歡迎使用。<br>
+    有任何問題請與 張文宜 聯絡：<a href="mailto:taco@m2.typs.tyc.edu.tw" style="color:var(--acc)">taco@m2.typs.tyc.edu.tw</a>
+  </div>
+
+</div>
+</body>
+</html>
