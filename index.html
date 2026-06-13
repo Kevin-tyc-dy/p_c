@@ -46,8 +46,8 @@
   .chip{display:inline-block;background:var(--chip);border-radius:6px;padding:2px 8px;font-size:12px;color:var(--mut)}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
   .photo{background:var(--panel2);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
-  .photo .pv{position:relative;background:#000;display:flex;align-items:center;justify-content:center;height:180px}
-  .photo canvas{max-width:100%;max-height:180px;display:block}
+  .photo .pv{position:relative;background:#000;display:flex;align-items:center;justify-content:center;width:100%;aspect-ratio:3/4}
+  .photo canvas{max-width:100%;max-height:100%;display:block}
   .photo .idx{position:absolute;top:6px;left:6px;background:rgba(0,0,0,.65);color:#fff;
     border-radius:6px;padding:1px 8px;font-size:12px;font-weight:600}
   .photo .body{padding:10px 12px;display:flex;flex-direction:column;gap:8px}
@@ -67,13 +67,19 @@
   .custom-on{border-color:var(--warn)!important}
   .badge-c{color:var(--warn);font-size:11px}
   a.dl{display:none}
-  .modal{position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:50;display:none;
-    align-items:center;justify-content:center;padding:16px}
+  .modal{position:fixed;inset:0;background:#000;z-index:50;display:none;
+    align-items:center;justify-content:center;padding:0}
   .modal.open{display:flex}
-  .cam{background:var(--panel);border:1px solid var(--line);border-radius:14px;
-    width:min(760px,100%);max-height:94vh;overflow:auto;padding:16px}
-  .cam-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
-  .cam video{width:100%;border-radius:10px;background:#000;max-height:52vh;display:block}
+  .cam{background:var(--panel);border:none;border-radius:0;
+    width:100%;height:100%;max-height:100vh;overflow:auto;padding:14px;display:flex;flex-direction:column}
+  .cam-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .cam video{width:100%;flex:1;min-height:0;border-radius:10px;background:#000;object-fit:contain;display:block}
+  .cam-controls{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;margin-top:12px}
+  .cam-controls #camAdd{justify-self:end}
+  .shutter{width:78px;height:78px;border-radius:50%;background:#fff;border:5px solid var(--acc);
+    cursor:pointer;justify-self:center;padding:0}
+  .shutter:hover{background:#eaeaea;border-color:var(--acc2)}
+  .shutter:active{transform:scale(.94)}
   .cam-strip{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
   .shot{position:relative;width:92px;height:92px;border-radius:8px;overflow:hidden;border:2px solid var(--line);cursor:pointer}
   .shot.sel{border-color:var(--ok)}
@@ -165,17 +171,15 @@
     <div class="cam-head">
       <h2 style="margin:0">📸 拍照</h2>
       <span class="grow"></span>
-      <button id="camFlip" class="sm">切換鏡頭</button>
       <button id="camClose" class="sm">關閉</button>
     </div>
     <video id="camVideo" playsinline muted autoplay></video>
-    <div class="rowbtns" style="margin-top:12px">
-      <button id="camShot" class="primary">● 拍攝一張</button>
+    <div class="cam-msg" id="camMsg"></div>
+    <div class="cam-controls">
       <span class="dim" id="camCount">尚未拍攝</span>
-      <span class="grow"></span>
+      <button id="camShot" class="shutter" title="拍攝一張"></button>
       <button id="camAdd" class="primary">加入選取的照片 →</button>
     </div>
-    <div class="cam-msg" id="camMsg"></div>
     <div class="cam-strip" id="camStrip"></div>
   </div>
 </div>
@@ -455,7 +459,6 @@ const camModal=$("#camModal"), camVideo=$("#camVideo"),
 $("#cameraBtn").onclick=openCam;
 $("#camClose").onclick=closeCam;
 $("#camShot").onclick=takeShot;
-$("#camFlip").onclick=()=>{cam.facing=cam.facing==="environment"?"user":"environment"; startStream();};
 $("#camAdd").onclick=addShots;
 
 async function openCam(){
