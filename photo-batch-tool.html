@@ -510,8 +510,8 @@ $("#camOverlayBtn").onclick=()=>{
   const hidden=$("#camOverlay").classList.toggle("hidden");
   $("#camOverlayBtn").textContent = hidden ? "參考框：關" : "參考框：開";
 };
-// 拍攝比例：3:4（寬:高），框貼齊影片顯示矩形的中央
-const PHOTO_ASPECT = 3/4;
+// 拍攝比例：寬:高 = 1:1.2，框貼齊影片顯示矩形的中央
+const PHOTO_ASPECT = 1/1.2;
 function positionFrame(){
   const wrap=camVideo.parentElement;
   const vw=camVideo.videoWidth, vh=camVideo.videoHeight, cw=wrap.clientWidth, ch=wrap.clientHeight;

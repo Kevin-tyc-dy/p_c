@@ -104,8 +104,8 @@ async function startCamera(){
   }
 }
 function stopCamera(){ if(cam.stream){ cam.stream.getTracks().forEach(t=>t.stop()); cam.stream=null; } }
-// 拍攝比例：3:4（寬:高）
-const PHOTO_ASPECT = 3/4;
+// 拍攝比例：寬:高 = 1:1.2
+const PHOTO_ASPECT = 1/1.2;
 // 把 3.5×4.5 拍攝框貼齊影片實際顯示矩形的中央
 function positionFrame(){
   const wrap=video.parentElement, vw=video.videoWidth, vh=video.videoHeight, cw=wrap.clientWidth, ch=wrap.clientHeight;
