@@ -30,8 +30,10 @@
   header h1{font-size:16px;margin:0}
   .stage{position:relative;flex:1;min-height:0;display:flex;background:#000;overflow:hidden}
   video{width:100%;height:100%;object-fit:contain;display:block}
-  .overlay{position:absolute;left:0;top:0;object-fit:contain;object-position:bottom center;
-    padding:8% 3% 2% 3%;box-sizing:border-box;pointer-events:none;opacity:.55}
+  .frame{position:absolute;left:0;top:0;box-shadow:0 0 0 9999px rgba(0,0,0,.45);
+    outline:2px solid rgba(255,255,255,.85);border-radius:4px;pointer-events:none}
+  .overlay{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:bottom center;
+    padding:4% 3% 1% 3%;box-sizing:border-box;pointer-events:none;opacity:.6}
   .overlay.hidden{display:none}
   .controls{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;
     padding:12px 16px;background:var(--panel)}
@@ -64,7 +66,7 @@
 
 <div class="stage">
   <video id="video" playsinline muted autoplay></video>
-  <img id="overlay" class="overlay" src="template-overlay.png" alt="人像參考框">
+  <div id="frame" class="frame"><img id="overlay" class="overlay" src="template-overlay.png" alt="人像參考框"></div>
 </div>
 
 <div class="controls">
@@ -96,29 +98,37 @@ async function startCamera(){
   try{
     cam.stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment", width:{ideal:3840}, height:{ideal:2160}}, audio:false});
     video.srcObject = cam.stream; await video.play();
-    requestAnimationFrame(positionOverlay); setTimeout(positionOverlay,300);
+    requestAnimationFrame(positionFrame); setTimeout(positionFrame,300);
   }catch(e){
     setStatus("無法開啟相機（"+e.name+"）。請允許相機權限；若以 file:// 開啟，部分瀏覽器會擋相機，建議用 https/GitHub Pages 開啟。","err");
   }
 }
 function stopCamera(){ if(cam.stream){ cam.stream.getTracks().forEach(t=>t.stop()); cam.stream=null; } }
-// 將參考框貼齊影片實際顯示的矩形（避免因 letterbox 造成尺寸/位置對不上）
-function positionOverlay(){
+// 拍攝比例：3:4（寬:高）
+const PHOTO_ASPECT = 3/4;
+// 把 3.5×4.5 拍攝框貼齊影片實際顯示矩形的中央
+function positionFrame(){
   const wrap=video.parentElement, vw=video.videoWidth, vh=video.videoHeight, cw=wrap.clientWidth, ch=wrap.clientHeight;
   if(!vw||!vh||!cw||!ch) return;
-  const s=Math.min(cw/vw, ch/vh), dw=vw*s, dh=vh*s;
-  overlay.style.left=((cw-dw)/2)+"px"; overlay.style.top=((ch-dh)/2)+"px";
-  overlay.style.width=dw+"px"; overlay.style.height=dh+"px";
+  const s=Math.min(cw/vw, ch/vh), dw=vw*s, dh=vh*s, dx=(cw-dw)/2, dy=(ch-dh)/2;
+  let fw,fh;
+  if(dw/dh > PHOTO_ASPECT){ fh=dh; fw=fh*PHOTO_ASPECT; } else { fw=dw; fh=fw/PHOTO_ASPECT; }
+  const f=$("#frame");
+  f.style.left=(dx+(dw-fw)/2)+"px"; f.style.top=(dy+(dh-fh)/2)+"px";
+  f.style.width=fw+"px"; f.style.height=fh+"px";
 }
-video.addEventListener("loadedmetadata", positionOverlay);
-video.addEventListener("playing", positionOverlay);
-window.addEventListener("resize", positionOverlay);
+video.addEventListener("loadedmetadata", positionFrame);
+video.addEventListener("playing", positionFrame);
+window.addEventListener("resize", positionFrame);
 
 function takeShot(){
-  const w=video.videoWidth, h=video.videoHeight;
-  if(!cam.stream || !w || !h){ setStatus("相機尚未就緒。","warn"); return; }
-  const cv=document.createElement("canvas"); cv.width=w; cv.height=h;
-  cv.getContext("2d").drawImage(video,0,0,w,h);
+  const vw=video.videoWidth, vh=video.videoHeight;
+  if(!cam.stream || !vw || !vh){ setStatus("相機尚未就緒。","warn"); return; }
+  let cw,ch; // 從畫面中央裁出 3.5:4.5 的最大區域
+  if(vw/vh > PHOTO_ASPECT){ ch=vh; cw=Math.round(vh*PHOTO_ASPECT); } else { cw=vw; ch=Math.round(vw/PHOTO_ASPECT); }
+  const sx=Math.round((vw-cw)/2), sy=Math.round((vh-ch)/2);
+  const cv=document.createElement("canvas"); cv.width=cw; cv.height=ch;
+  cv.getContext("2d").drawImage(video, sx,sy,cw,ch, 0,0,cw,ch);
   cv.toBlob(b=>{ cam.shots.push({id:++uid, blob:b, url:URL.createObjectURL(b), sel:true}); renderStrip(); }, "image/jpeg", 0.95);
 }
 $("#shot").onclick = takeShot;
