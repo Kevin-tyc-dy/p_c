@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>iPad 拍照版</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#181b22; --panel2:#1f232c; --line:#2a2f3a;
+    --txt:#e6e9ef; --mut:#9aa3b2; --acc:#4f8cff; --acc2:#3a6fd8;
+    --ok:#36c08a; --warn:#f0a832; --danger:#e5574e;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;font-family:"Segoe UI","Noto Sans TC",system-ui,sans-serif;
+    background:#000;color:var(--txt);font-size:15px;line-height:1.5;
+    display:flex;flex-direction:column;height:100vh;overflow:hidden}
+  button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--panel2);
+    color:var(--txt);padding:9px 14px;border-radius:10px;transition:.12s}
+  button:hover{border-color:var(--acc);color:#fff}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  button.primary{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600}
+  button.primary:hover{background:var(--acc2)}
+  button.ghost{background:transparent}
+  button.sm{padding:5px 10px;font-size:13px;border-radius:8px}
+  .grow{flex:1}
+  header{display:flex;align-items:center;gap:10px;padding:10px 14px;
+    padding-top:calc(10px + env(safe-area-inset-top));background:var(--panel);border-bottom:1px solid var(--line)}
+  header h1{font-size:16px;margin:0}
+  .stage{position:relative;flex:1;min-height:0;display:flex;background:#000;overflow:hidden}
+  video{width:100%;height:100%;object-fit:contain;display:block}
+  .overlay{position:absolute;left:0;top:0;object-fit:contain;object-position:bottom center;
+    padding:8% 15% 2% 15%;box-sizing:border-box;pointer-events:none;opacity:.55}
+  .overlay.hidden{display:none}
+  .controls{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;
+    padding:12px 16px;background:var(--panel)}
+  .controls .count{justify-self:start;color:var(--mut);font-size:13px}
+  .controls .right{justify-self:end;display:flex;gap:8px}
+  .shutter{width:80px;height:80px;border-radius:50%;background:#fff;border:6px solid var(--acc);
+    cursor:pointer;justify-self:center;padding:0}
+  .shutter:hover{background:#eaeaea;border-color:var(--acc2)}
+  .shutter:active{transform:scale(.93)}
+  .tray{background:var(--panel);border-top:1px solid var(--line);
+    padding:10px 14px;padding-bottom:calc(10px + env(safe-area-inset-bottom));
+    display:flex;flex-direction:column;gap:10px;max-height:38vh;overflow:auto}
+  .strip{display:flex;gap:8px;flex-wrap:wrap}
+  .shot{position:relative;width:74px;height:74px;border-radius:8px;overflow:hidden;
+    border:2px solid var(--line);cursor:pointer;flex:0 0 auto}
+  .shot.sel{border-color:var(--ok)}
+  .shot img{width:100%;height:100%;object-fit:cover;display:block}
+  .shot .chk{position:absolute;top:3px;left:3px;width:18px;height:18px}
+  .shot .rm{position:absolute;bottom:0;right:0;background:rgba(0,0,0,.65);color:#fff;
+    border:none;font-size:11px;padding:1px 6px;cursor:pointer}
+  .actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .status{font-size:13px;color:var(--mut);min-height:18px}
+  .status.ok{color:var(--ok)} .status.err{color:var(--danger)} .status.warn{color:var(--warn)}
+  .status a{color:var(--acc)}
+  /* 設定視窗 */
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:60;display:none;
+    align-items:center;justify-content:center;padding:16px}
+  .modal.open{display:flex}
+  .sheet{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    width:min(540px,100%);max-height:90vh;overflow:auto;padding:18px}
+  .sheet h2{margin:0 0 12px;font-size:16px}
+  label{display:block;color:var(--mut);font-size:13px;margin:12px 0 4px}
+  input[type=text]{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--txt);
+    border-radius:8px;padding:9px 11px;font:inherit}
+  .help{font-size:12.5px;color:var(--mut);line-height:1.7;margin-top:14px;
+    background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px}
+  .help b{color:var(--txt)} .help code{color:var(--acc);word-break:break-all}
+  ol{margin:6px 0 0 18px;padding:0}
+</style>
+</head>
+<body>
+<header>
+  <h1>📸 iPad 拍照版</h1>
+  <span class="grow"></span>
+  <button id="overlayBtn" class="sm">參考框：開</button>
+  <button id="settingsBtn" class="sm">設定</button>
+</header>
+
+<div class="stage">
+  <video id="video" playsinline muted autoplay></video>
+  <img id="overlay" class="overlay" src="template-overlay.png" alt="人像參考框">
+</div>
+
+<div class="controls">
+  <span class="count" id="count">尚未拍攝</span>
+  <button id="shot" class="shutter" title="拍攝一張（也可按 Enter／空白鍵）"></button>
+  <span class="right"></span>
+</div>
+
+<div class="tray">
+  <div class="strip" id="strip"></div>
+  <div class="actions">
+    <button id="upload" class="primary">打包並上傳 Google Drive</button>
+    <button id="download" class="ghost sm">下載 ZIP（備援）</button>
+    <button id="clear" class="ghost sm">清除全部</button>
+  </div>
+  <div class="status" id="status"></div>
+</div>
+
+<!-- 設定 -->
+<div class="modal" id="settingsModal">
+  <div class="sheet">
+    <h2>設定</h2>
+    <label>Google OAuth Client ID</label>
+    <input type="text" id="clientId" placeholder="xxxxxxxx.apps.googleusercontent.com" autocomplete="off">
+    <label>上傳到雲端的資料夾名稱</label>
+    <input type="text" id="folderName" placeholder="iPad拍照上傳">
+    <div class="actions" style="margin-top:16px">
+      <button id="saveSettings" class="primary">儲存</button>
+      <button id="closeSettings" class="ghost">關閉</button>
+    </div>
+    <div class="help">
+      <b>如何取得 Client ID（只需做一次）：</b>
+      <ol>
+        <li>到 Google Cloud Console 建立一個專案。</li>
+        <li>「API 和服務 → 程式庫」啟用 <b>Google Drive API</b>。</li>
+        <li>「OAuth 同意畫面」選 External，填好應用程式名稱，並把自己的 Google 帳號加進「測試使用者」。</li>
+        <li>「憑證 → 建立憑證 → OAuth 用戶端 ID」，類型選 <b>網頁應用程式</b>。</li>
+        <li>「已授權的 JavaScript 來源」加入你的網站來源，例如 <code>https://你的帳號.github.io</code>（只填來源，不含路徑）。</li>
+        <li>複製產生的 Client ID 貼到上面欄位，按儲存。</li>
+      </ol>
+      注意：一鍵上傳需要把本頁放在 <b>https</b>（例如 GitHub Pages）才能登入 Google；以 file:// 雙擊開啟無法上傳，但「下載 ZIP（備援）」仍可用。
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+let uid = 0;
+const cam = { stream:null, shots:[] };
+const video = $("#video"), overlay = $("#overlay"), strip = $("#strip");
+
+/* ---------- 相機 ---------- */
+async function startCamera(){
+  stopCamera();
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    setStatus("此瀏覽器不支援相機存取。","err"); return;
+  }
+  try{
+    cam.stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}, audio:false});
+    video.srcObject = cam.stream; await video.play();
+    requestAnimationFrame(positionOverlay); setTimeout(positionOverlay,300);
+  }catch(e){
+    setStatus("無法開啟相機（"+e.name+"）。請允許相機權限；若以 file:// 開啟，部分瀏覽器會擋相機，建議用 https/GitHub Pages 開啟。","err");
+  }
+}
+function stopCamera(){ if(cam.stream){ cam.stream.getTracks().forEach(t=>t.stop()); cam.stream=null; } }
+// 將參考框貼齊影片實際顯示的矩形（避免因 letterbox 造成尺寸/位置對不上）
+function positionOverlay(){
+  const wrap=video.parentElement, vw=video.videoWidth, vh=video.videoHeight, cw=wrap.clientWidth, ch=wrap.clientHeight;
+  if(!vw||!vh||!cw||!ch) return;
+  const s=Math.min(cw/vw, ch/vh), dw=vw*s, dh=vh*s;
+  overlay.style.left=((cw-dw)/2)+"px"; overlay.style.top=((ch-dh)/2)+"px";
+  overlay.style.width=dw+"px"; overlay.style.height=dh+"px";
+}
+video.addEventListener("loadedmetadata", positionOverlay);
+video.addEventListener("playing", positionOverlay);
+window.addEventListener("resize", positionOverlay);
+
+function takeShot(){
+  const w=video.videoWidth, h=video.videoHeight;
+  if(!cam.stream || !w || !h){ setStatus("相機尚未就緒。","warn"); return; }
+  const cv=document.createElement("canvas"); cv.width=w; cv.height=h;
+  cv.getContext("2d").drawImage(video,0,0,w,h);
+  cv.toBlob(b=>{ cam.shots.push({id:++uid, blob:b, url:URL.createObjectURL(b), sel:true}); renderStrip(); }, "image/jpeg", 0.92);
+}
+$("#shot").onclick = takeShot;
+document.addEventListener("keydown", e=>{
+  if($("#settingsModal").classList.contains("open")) return;
+  if(e.code==="Space"||e.code==="Enter"||e.key===" "||e.key==="Enter"){ e.preventDefault(); takeShot(); }
+});
+
+function renderStrip(){
+  strip.innerHTML="";
+  cam.shots.forEach((s,i)=>{
+    const d=document.createElement("div");
+    d.className="shot"+(s.sel?" sel":"");
+    d.innerHTML=`<img src="${s.url}"><input type="checkbox" class="chk" ${s.sel?"checked":""}><button class="rm">移除</button>`;
+    const toggle=v=>{s.sel=v; d.classList.toggle("sel",v); d.querySelector(".chk").checked=v; updateCount();};
+    d.querySelector("img").onclick=()=>toggle(!s.sel);
+    d.querySelector(".chk").onchange=e=>toggle(e.target.checked);
+    d.querySelector(".rm").onclick=ev=>{ev.stopPropagation(); URL.revokeObjectURL(s.url); cam.shots.splice(i,1); renderStrip();};
+    strip.appendChild(d);
+  });
+  updateCount();
+}
+function updateCount(){
+  const sel=cam.shots.filter(s=>s.sel).length;
+  $("#count").textContent = cam.shots.length ? `已拍 ${cam.shots.length} 張，選取 ${sel} 張` : "尚未拍攝";
+}
+$("#clear").onclick=()=>{
+  if(!cam.shots.length) return;
+  if(confirm("確定清除全部拍攝的照片？")){ cam.shots.forEach(s=>URL.revokeObjectURL(s.url)); cam.shots=[]; renderStrip(); setStatus(""); }
+};
+
+/* ---------- 參考框 ---------- */
+$("#overlayBtn").onclick=()=>{
+  const hidden=overlay.classList.toggle("hidden");
+  $("#overlayBtn").textContent = hidden ? "參考框：關" : "參考框：開";
+};
+
+/* ---------- 設定 ---------- */
+$("#settingsBtn").onclick=openSettings;
+$("#closeSettings").onclick=()=>$("#settingsModal").classList.remove("open");
+$("#saveSettings").onclick=()=>{
+  localStorage.setItem("gClientId", $("#clientId").value.trim());
+  localStorage.setItem("gFolderName", $("#folderName").value.trim() || "iPad拍照上傳");
+  tokenClient=null; // 重新初始化
+  $("#settingsModal").classList.remove("open");
+  setStatus("設定已儲存。","ok");
+};
+function openSettings(){
+  $("#clientId").value = localStorage.getItem("gClientId") || "";
+  $("#folderName").value = localStorage.getItem("gFolderName") || "iPad拍照上傳";
+  $("#settingsModal").classList.add("open");
+}
+
+/* ---------- 狀態 ---------- */
+function setStatus(html, cls){
+  const el=$("#status"); el.className="status"+(cls?" "+cls:""); el.innerHTML=html;
+}
+function setBusy(on,text){
+  $("#upload").disabled=on; $("#download").disabled=on; $("#shot").disabled=on;
+  if(text) setStatus(text, on?"warn":"");
+}
+function pad(n){ return String(n).padStart(2,"0"); }
+function stampNow(){ return new Date().toISOString().replace(/[-:T]/g,"").slice(0,14); }
+
+/* ---------- 打包 ZIP（store 無壓縮，內建 CRC32） ---------- */
+const CRC_TABLE=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;
+  for(let k=0;k<8;k++)c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);t[n]=c>>>0;}return t;})();
+function crc32(u8){let c=0xFFFFFFFF;for(let i=0;i<u8.length;i++)c=CRC_TABLE[(c^u8[i])&0xFF]^(c>>>8);return (c^0xFFFFFFFF)>>>0;}
+function buildZip(files){
+  const enc=new TextEncoder(); const chunks=[], central=[]; let offset=0;
+  const time=0, date=(0<<9)|(1<<5)|1;
+  for(const f of files){
+    const nameB=enc.encode(f.name), crc=crc32(f.data), size=f.data.length;
+    const lh=new DataView(new ArrayBuffer(30));
+    lh.setUint32(0,0x04034b50,true); lh.setUint16(4,20,true); lh.setUint16(6,0x0800,true);
+    lh.setUint16(8,0,true); lh.setUint16(10,time,true); lh.setUint16(12,date,true);
+    lh.setUint32(14,crc,true); lh.setUint32(18,size,true); lh.setUint32(22,size,true);
+    lh.setUint16(26,nameB.length,true); lh.setUint16(28,0,true);
+    chunks.push(new Uint8Array(lh.buffer), nameB, f.data);
+    const ch=new DataView(new ArrayBuffer(46));
+    ch.setUint32(0,0x02014b50,true); ch.setUint16(4,20,true); ch.setUint16(6,20,true);
+    ch.setUint16(8,0x0800,true); ch.setUint16(10,0,true); ch.setUint16(12,time,true);
+    ch.setUint16(14,date,true); ch.setUint32(16,crc,true); ch.setUint32(20,size,true);
+    ch.setUint32(24,size,true); ch.setUint16(28,nameB.length,true); ch.setUint16(30,0,true);
+    ch.setUint16(32,0,true); ch.setUint16(34,0,true); ch.setUint16(36,0,true);
+    ch.setUint32(38,0,true); ch.setUint32(42,offset,true);
+    const cd=new Uint8Array(46+nameB.length); cd.set(new Uint8Array(ch.buffer),0); cd.set(nameB,46);
+    central.push(cd); offset += 30+nameB.length+size;
+  }
+  let cdSize=0; for(const c of central)cdSize+=c.length;
+  const eo=new DataView(new ArrayBuffer(22));
+  eo.setUint32(0,0x06054b50,true); eo.setUint16(4,0,true); eo.setUint16(6,0,true);
+  eo.setUint16(8,files.length,true); eo.setUint16(10,files.length,true);
+  eo.setUint32(12,cdSize,true); eo.setUint32(16,offset,true); eo.setUint16(20,0,true);
+  return new Blob([...chunks,...central,new Uint8Array(eo.buffer)],{type:"application/zip"});
+}
+async function selectedZip(){
+  const sel=cam.shots.filter(s=>s.sel);
+  if(!sel.length){ setStatus("請至少拍一張並勾選要使用的照片。","warn"); return null; }
+  const stamp=stampNow();
+  const files=await Promise.all(sel.map(async (s,i)=>({
+    name:`shot_${stamp}_${pad(i+1)}.jpg`, data:new Uint8Array(await s.blob.arrayBuffer())
+  })));
+  return { blob: buildZip(files), name:`photos_${stamp}.zip`, count: sel.length };
+}
+
+/* ---------- 下載備援 ---------- */
+$("#download").onclick=async()=>{
+  setBusy(true,"打包中…");
+  try{
+    const z=await selectedZip(); if(!z){ setBusy(false); return; }
+    const a=document.createElement("a"); const url=URL.createObjectURL(z.blob);
+    a.href=url; a.download=z.name; a.click(); setTimeout(()=>URL.revokeObjectURL(url),4000);
+    setStatus(`已下載 ${z.name}（${z.count} 張）。`,"ok");
+  }catch(e){ setStatus("打包失敗："+(e.message||e),"err"); }
+  finally{ setBusy(false); }
+};
+
+/* ---------- Google Drive 一鍵上傳 ---------- */
+let tokenClient=null, accessToken=null;
+function ensureTokenClient(){
+  const CLIENT_ID=localStorage.getItem("gClientId");
+  if(!CLIENT_ID) throw new Error("尚未設定 Client ID");
+  if(!window.google || !google.accounts || !google.accounts.oauth2)
+    throw new Error("Google 登入元件尚未載入（請確認網路、並以 https 開啟本頁）");
+  if(!tokenClient){
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: "https://www.googleapis.com/auth/drive.file",
+      callback: ()=>{}
+    });
+  }
+}
+function getToken(){
+  return new Promise((resolve,reject)=>{
+    try{ ensureTokenClient(); }catch(e){ reject(e); return; }
+    tokenClient.callback = resp => {
+      if(resp && resp.error){ reject(new Error("Google 授權失敗："+resp.error)); return; }
+      accessToken = resp.access_token; resolve(accessToken);
+    };
+    tokenClient.requestAccessToken({ prompt: accessToken ? "" : "consent" });
+  });
+}
+async function ensureFolder(name){
+  const key="gFolderId:"+name;
+  const cached=localStorage.getItem(key);
+  if(cached) return cached;
+  const r=await fetch("https://www.googleapis.com/drive/v3/files?fields=id",{
+    method:"POST",
+    headers:{ Authorization:"Bearer "+accessToken, "Content-Type":"application/json" },
+    body: JSON.stringify({ name, mimeType:"application/vnd.google-apps.folder" })
+  });
+  if(!r.ok) throw new Error("建立資料夾失敗（"+r.status+"）");
+  const d=await r.json(); localStorage.setItem(key, d.id); return d.id;
+}
+async function driveUpload(blob, filename, folderId){
+  const meta={ name:filename }; if(folderId) meta.parents=[folderId];
+  const form=new FormData();
+  form.append("metadata", new Blob([JSON.stringify(meta)], {type:"application/json"}));
+  form.append("file", blob);
+  const r=await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink",{
+    method:"POST", headers:{ Authorization:"Bearer "+accessToken }, body: form
+  });
+  if(!r.ok) throw new Error("上傳失敗（"+r.status+"）："+(await r.text()).slice(0,200));
+  return r.json();
+}
+$("#upload").onclick=async()=>{
+  if(!localStorage.getItem("gClientId")){ setStatus("請先到「設定」貼上 Google OAuth Client ID。","warn"); openSettings(); return; }
+  setBusy(true,"打包中…");
+  try{
+    const z=await selectedZip(); if(!z){ setBusy(false); return; }
+    setStatus("登入 Google…","warn"); await getToken();
+    setStatus("上傳中…","warn");
+    const folderName=localStorage.getItem("gFolderName")||"iPad拍照上傳";
+    const folderId=await ensureFolder(folderName);
+    const res=await driveUpload(z.blob, z.name, folderId);
+    const link=res.webViewLink ? ` <a href="${res.webViewLink}" target="_blank">開啟</a>` : "";
+    setStatus(`✅ 已上傳到雲端「${folderName}」：${res.name}（${z.count} 張）${link}`,"ok");
+  }catch(e){ setStatus("上傳失敗："+(e.message||e),"err"); }
+  finally{ setBusy(false); }
+};
+
+/* ---------- 啟動 ---------- */
+window.addEventListener("pagehide", stopCamera);
+startCamera();
+renderStrip();
+</script>
+</body>
+</html>

@@ -32,9 +32,28 @@
 
   然後瀏覽器開 `http://localhost:8000/index.html`。
 
+## iPad 拍照版（`ipad-camera.html`）
+
+把拍照功能獨立出來的版本，適合在 iPad 上拍、再回電腦編輯：全螢幕後鏡頭、人像參考框、連拍選取，按一鍵把這組照片打包成 ZIP 並**直接上傳到你的 Google 雲端**。也保留「下載 ZIP（備援）」。
+
+需要與 `template-overlay.png` 放在同一層，且因為要登入 Google，**必須以 https（GitHub Pages）開啟**，不能用 file:// 雙擊。
+
+### 一鍵上傳前的 Google 設定（只需做一次）
+
+1. 到 [Google Cloud Console](https://console.cloud.google.com/) 建立一個專案。
+2. 「API 和服務 → 程式庫」啟用 **Google Drive API**。
+3. 「OAuth 同意畫面」選 External，填好應用程式名稱，並把自己的 Google 帳號加進「測試使用者」。
+4. 「憑證 → 建立憑證 → OAuth 用戶端 ID」，類型選 **網頁應用程式**。
+5. 「已授權的 JavaScript 來源」加入你的網站來源，例如 `https://你的帳號.github.io`（只填來源、不含路徑）。
+6. 複製 Client ID，開啟 `ipad-camera.html` → 右上「設定」貼上、按儲存。
+
+之後流程：拍照 → 勾選 → 按「打包並上傳 Google Drive」→ 第一次會跳出 Google 授權，同意後就會把 `photos_日期.zip` 上傳到雲端指定資料夾（預設「iPad拍照上傳」，可在設定改）。回電腦從雲端下載解壓，再用 `index.html` 做批次裁切與更名。
+
+上傳使用 `drive.file` 權限，只能存取本工具自己建立的檔案，不會讀取你雲端的其他資料。
+
 ## 隱私
 
-工具不含任何分析、追蹤或上傳行為，照片只存在於你目前的瀏覽器分頁中，關閉分頁即清除。
+裁切／更名工具（`index.html`）不含任何分析、追蹤或上傳行為，照片只存在於你目前的瀏覽器分頁中，關閉分頁即清除。拍照版（`ipad-camera.html`）僅在你按下「上傳」時，把打包檔送到你自己的 Google 雲端。
 
 ## 授權
 

@@ -75,7 +75,7 @@
   .cam-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
   .cam-video-wrap{position:relative;flex:1;min-height:0;display:flex;border-radius:10px;overflow:hidden;background:#000}
   .cam video{width:100%;height:100%;object-fit:contain;display:block}
-  .cam-overlay{position:absolute;left:15%;right:15%;top:8%;bottom:2%;width:auto;height:auto;object-fit:contain;object-position:bottom center;pointer-events:none;opacity:.55}
+  .cam-overlay{position:absolute;left:0;top:0;object-fit:contain;object-position:bottom center;padding:8% 15% 2% 15%;box-sizing:border-box;pointer-events:none;opacity:.55}
   .cam-overlay.hidden{display:none}
   .cam-controls{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;margin-top:12px}
   .cam-controls #camAdd{justify-self:end}
@@ -471,6 +471,18 @@ $("#camOverlayBtn").onclick=()=>{
   const hidden=$("#camOverlay").classList.toggle("hidden");
   $("#camOverlayBtn").textContent = hidden ? "參考框：關" : "參考框：開";
 };
+// 將參考框貼齊影片實際顯示的矩形（避免因 letterbox 造成尺寸/位置對不上）
+function positionOverlay(){
+  const ov=$("#camOverlay"), wrap=camVideo.parentElement;
+  const vw=camVideo.videoWidth, vh=camVideo.videoHeight, cw=wrap.clientWidth, ch=wrap.clientHeight;
+  if(!vw||!vh||!cw||!ch) return;
+  const s=Math.min(cw/vw, ch/vh), dw=vw*s, dh=vh*s;
+  ov.style.left=((cw-dw)/2)+"px"; ov.style.top=((ch-dh)/2)+"px";
+  ov.style.width=dw+"px"; ov.style.height=dh+"px";
+}
+camVideo.addEventListener("loadedmetadata", positionOverlay);
+camVideo.addEventListener("playing", positionOverlay);
+window.addEventListener("resize", positionOverlay);
 // 實體快門：藍牙遙控器/鍵盤的 Enter 或空白鍵＝拍攝（iPad 系統音量鍵無法被網頁攔截）
 document.addEventListener("keydown",e=>{
   if(!camModal.classList.contains("open"))return;
@@ -491,6 +503,7 @@ async function startStream(){
   try{
     cam.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:cam.facing}, audio:false});
     camVideo.srcObject=cam.stream; await camVideo.play();
+    requestAnimationFrame(positionOverlay); setTimeout(positionOverlay,300);
   }catch(e){
     camMsg.textContent="無法開啟相機（"+e.name+"）。若是雙擊開啟此檔（file://），多數瀏覽器會擋相機——請改用 Firefox，或透過本機伺服器/手機以 http://localhost 開啟本頁。";
   }
